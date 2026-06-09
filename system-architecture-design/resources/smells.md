@@ -14,6 +14,17 @@ A contract (schema, interface, constant set) is defined by **copying** it into t
 
 **Fix:** publish ONE versioned artifact (a schema package, a hashed interface) that both sides import; guard it with a conformance fitness function. The proven local example: a leaf package that exposes a hashed, language-neutral interface both producer and consumer import, with an AST test enforcing the import boundary.
 
+## 1b. Spec self-contradiction (a source of truth that disagrees with itself)
+
+A *contract/spec* repo defines one concept two ways that disagree, or ships schemas that don't validate their own canonical example. This is worse than contract-by-copy: the artifact meant to *prevent* drift *is* the drift, and every consumer must pick a side. `architecture_scan.py` **cannot** see this — it's semantic, not byte-level; this is a manual read.
+
+**Detect:**
+- **One concept, two definitions.** Grep the spec repo for the same noun modelled differently in two places — e.g. a "skill" step that is a *baked trajectory* (`skill_name` + required `execution_plan`) in one file and a *live trigger* (`{skill, phase, params}`, no baked motion) in another. The two will never reconcile on their own.
+- **A schema that lies.** Does the canonical example **validate against its own JSONSchema**? If wiring the schema into CI would reject the repo's own example (e.g. `execution_plan_ref` declared `string` but used as a mapping), the schema is dead documentation.
+- **Identity drift inside the contract.** The same entity pinned under two names/versions (`screw` v2.1.0 vs `screwdriver` v0.2.0), or pointing at the wrong source (a `stanford-mfg/...` URI for a `Standard-Manufacturing-Co` repo).
+
+**Fix:** one authoritative definition per concept; if two shapes are both real (a bake-side reference *and* a runtime trigger), state which is canonical and define the single bridging map. Make schemas **CI-gated against the example** — the cheapest, highest-value fitness function here is literally *"the canonical example MUST validate against every schema."* Pin identity once.
+
 ## 2. God module / god file
 
 One file/class doing many unrelated jobs; the natural home for hidden temporal coupling.
